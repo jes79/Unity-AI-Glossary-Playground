@@ -8,6 +8,23 @@
 - 구현 방식: 런타임 데모 163 · 설명 + 대체 구현 14 · 에디터 도구 데모 5
 - 용어별 설명·씬·스크립트 정리: [Wiki](https://github.com/jes79/Unity-AI-Glossary-Playground/wiki) (원본은 `docs/wiki/`)
 
+![허브 씬: 분야를 고르고 용어를 누르면 해당 예제 씬으로 이동](docs/images/0000_Hub.jpg)
+
+## 스크린샷
+
+모든 씬 왼쪽 위에 용어 · 쉽게 말하면 · 요청 예문 · 조작법 · 실시간 상태를 보여 주는 정보 패널이 있습니다.
+
+| | |
+| --- | --- |
+| ![0415 홀로그램](docs/images/0415_Hologram.jpg) | ![0501 Particle System](docs/images/0501_ParticleSystem.jpg) |
+| **0415 홀로그램** · 위로 흐르는 스캔라인 셰이더 | **0501 Particle System** · 불꽃·불씨·연기 3레이어 모닥불 |
+| ![0516 오라/버프](docs/images/0516_AuraBuff.jpg) | ![0522 VFX Graph](docs/images/0522_VFXGraph.jpg) |
+| **0516 오라 / 버프** · 회전 마법진 + 상승 입자 | **0522 VFX Graph** · GPU 입자 5만 개 소용돌이 포탈 |
+| ![0615 미니맵](docs/images/0615_Minimap.jpg) | ![0706 시야 판정](docs/images/0706_FieldOfView.jpg) |
+| **0615 미니맵** · 탑뷰 카메라 + Render Texture | **0706 시야 판정** · 시야각 90°·10m, 벽에 가리면 못 봄 |
+| ![0711 A*](docs/images/0711_AStar.jpg) | ![1013 GPU Instancing](docs/images/1013_GPUInstancing.jpg) |
+| **0711 A\*** · 타일맵 최단 경로와 탐색 칸 | **1013 GPU Instancing** · GameObject 없이 나무 1000그루 |
+
 ## 처음 열 때
 
 1. Unity Hub에서 `Unity-AI-Glossary-Playground` 폴더를 엽니다.
@@ -55,6 +72,8 @@ tools/compile-check/           Unity 없이 C# 컴파일 검사 (dotnet)
 - `Tools > Glossary > Build All Scenes` / `Build Scene > …` : 전체 또는 씬 하나 다시 만들기
 - `Tools > Glossary > Validate All Scenes` : 셰이더 컴파일 오류, Missing Script, 분홍 머티리얼 점검
 - `Tools > Glossary > Rendering/Patterns > …` : 라이트맵·오클루전 굽기, 적 스포너 창 등 데모용 에디터 도구
+- `Tools > Glossary > Build Screenshot Player` : README 스크린샷용 Windows 플레이어 빌드
+  (`Builds/Screenshots/Glossary.exe -glossaryShots <폴더> -glossaryShotList 0000_Hub,0415_Hologram` 로 실행하면 자동 캡처 후 종료)
 
 명령줄 일괄 생성 + 점검:
 
