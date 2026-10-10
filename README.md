@@ -6,7 +6,7 @@
 - Unity 6000.6.4f1, URP 17.6, New Input System, Cinemachine 6.6, AI Navigation 2.0, Timeline
 - 씬 182개 + 허브 씬 1개 (+ 0816 보조 씬 2개)
 - 구현 방식: 런타임 데모 163 · 설명 + 대체 구현 14 · 에디터 도구 데모 5
-- 용어 정리 DB: Notion "유니티 AI 요청 용어 DB" (용어 · 쉽게 말하면 · 요청 예문 · 예제 씬 · 핵심 스크립트 · 구현 방식)
+- 용어별 설명·씬·스크립트 정리: [Wiki](https://github.com/jes79/Unity-AI-Glossary-Playground/wiki) (원본은 `docs/wiki/`)
 
 ## 처음 열 때
 
