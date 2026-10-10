@@ -74,7 +74,9 @@ namespace GlossaryDemo.PhysicsDemo
             // ② 물리: 래그돌이면 중력·충돌로 움직이게
             foreach (var rb in bones)
             {
-                if (!on) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+                if (rb == null) continue;
+                // 속도 초기화는 아직 동적(non-kinematic)일 때만: kinematic 바디에 속도를 넣으면 경고가 남
+                if (!on && !rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
                 rb.isKinematic = !on;
             }
         }

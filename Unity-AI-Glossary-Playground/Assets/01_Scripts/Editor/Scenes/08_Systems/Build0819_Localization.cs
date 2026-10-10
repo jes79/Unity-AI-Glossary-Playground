@@ -11,8 +11,10 @@ public static class Build0819_Localization
     [MenuItem("Tools/Glossary/Build Scene/08 Systems/0819_Localization")]
     public static void Build()
     {
-        var table = EnsureTable();
+        // 테이블 에셋은 새 씬을 만든 뒤에 불러온다: NewScene(Single) 이 참조 없는 에셋을 언로드해서
+        // 먼저 만든 참조가 끊어지면 씬에 table: null 로 저장되어 빌드에서 NullReference 가 났음
         var ctx = NewSceneUI("0819", "[한국어] / [English] 버튼 또는 L : 언어 전환   G : 골드 +100\n왼쪽 메뉴의 글자는 모두 '키'만 가지고 있고, 문자열 테이블에서 현재 언어 문장을 가져옴\n이 프로젝트에는 Localization 패키지가 없어 같은 구조의 간단 버전으로 시연\n오른쪽 = 실제 Unity Localization 패키지로 하는 방법");
+        var table = EnsureTable();
         var root = ctx.Canvas.transform;
         var demo = new GameObject("LocalizationDemo").AddComponent<LocalizationDemo>();
         Set(demo, "table", table);

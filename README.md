@@ -100,12 +100,17 @@ Unity.exe -batchmode -projectPath Unity-AI-Glossary-Playground -executeMethod Gl
 | 1018 | Addressables | Resources.LoadAsync |
 | 1112 | Git | 미니 Git 시뮬레이터 + 설정 검사 |
 
-## 실행해서 확인할 부분
+## 검증 상태
 
-일괄 생성과 자동 점검(셰이더 오류·Missing Script·분홍 머티리얼)은 모두 통과했지만, 아래는 Play 모드에서 눈으로 확인이 필요합니다.
+- **에디터 점검**: 182개 씬 일괄 생성 + `Validate All Scenes`(셰이더 컴파일 오류·Missing Script·분홍 머티리얼) 통과
+- **실행 점검**: Windows 플레이어로 185개 씬(보조 씬 포함)을 차례로 실행해 예외 로그와 화면을 확인했습니다.
+  이때 찾은 문제(0417 물 셰이더 거품, 0819 문자열 테이블 연결 누락, 1011 씬 전환 멈춤, 0212 키네마틱 경고, 0604·0410 글자 겹침, 정보 패널 제목 잘림)는 모두 고쳤습니다.
+- **자동 실행으로는 확인할 수 없는 부분** (키·마우스 조작이 필요한 연출):
+  타격·폭발·디졸브처럼 눌러야 시작되는 연출, Cinemachine 카메라 조작감(0111~0113), 래그돌 쓰러짐(0212), Root Motion 구르기(0307)
+
+## 주의할 점
 
 - 0520: 씬에 있는 동안만 `QualitySettings.renderPipeline`을 Decal 복제 파이프라인으로 바꿉니다. 비정상 종료 시 Quality 설정의 파이프라인을 `PC_RPAsset`으로 되돌리세요.
 - 1004 / 1012: Play 중 URP 에셋 값(그림자 거리, SRP Batcher)을 바꾸고 종료 시 되돌립니다.
 - 0204: `Physics.IgnoreLayerCollision`을 실행 중에만 바꾸고 씬 종료 시 복원합니다.
-- 1016: 배치 모드 빌드에서는 Sprite Atlas 미리 패킹 경고가 나올 수 있습니다. 에디터 Play 시 자동 패킹됩니다.
-- 셰이더 씬(0410~0420, 0522, 1009), Cinemachine 씬(0111~0113), 래그돌(0212), Root Motion(0307), Timeline(0312)의 연출 세기·카메라 구도.
+- 0527 등 Depth of Field: 에디터에서는 동작하지만, 빌드에서는 URP가 DOF 셰이더를 제외해 효과가 빠질 수 있습니다.

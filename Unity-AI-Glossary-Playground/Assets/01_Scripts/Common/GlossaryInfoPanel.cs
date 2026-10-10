@@ -130,7 +130,11 @@ namespace GlossaryDemo
             var titleText = NewText("Title", header, title, 26f, new Color(1f, 0.86f, 0.4f));
             titleText.fontStyle = FontStyles.Bold;
             titleText.textWrappingMode = TextWrappingModes.NoWrap;
-            titleText.overflowMode = TextOverflowModes.Ellipsis;
+            titleText.overflowMode = TextOverflowModes.Truncate; // 동적 한글 폰트에 '…' 글리프가 없어 Ellipsis 는 경고가 남
+            // 긴 용어("시야 판정 (Field of View)")도 잘리지 않게 칸에 맞춰 글자 크기를 줄임
+            titleText.enableAutoSizing = true;
+            titleText.fontSizeMin = 15f;
+            titleText.fontSizeMax = 26f;
             titleText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             NewButton(header, "허브", GoHub);

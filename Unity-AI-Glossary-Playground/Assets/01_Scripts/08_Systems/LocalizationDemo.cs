@@ -15,9 +15,17 @@ namespace GlossaryDemo.Systems
 
         private void Awake()
         {
+            if (table == null) Debug.LogWarning("[0819] LocalizationTable 이 연결되지 않았습니다. 키 이름이 그대로 표시됩니다.");
             Localization.Table = table;
-            // 저장된 언어 불러오기 (없으면 한국어)
-            Localization.SetLanguage((Language)PlayerPrefs.GetInt(Localization.PrefKey, 0));
+            // 저장된 언어 불러오기 (없거나 잘못된 값이면 한국어)
+            int saved = PlayerPrefs.GetInt(Localization.PrefKey, 0);
+            Localization.SetLanguage(System.Enum.IsDefined(typeof(Language), saved) ? (Language)saved : Language.Korean);
+        }
+
+        // 씬을 떠나면 정적 참조를 정리 (다른 씬에서 파괴된 테이블을 들고 있지 않게)
+        private void OnDestroy()
+        {
+            if (Localization.Table == table) Localization.Table = null;
         }
 
         private void OnEnable() => Localization.Changed += RefreshDynamic;
@@ -29,7 +37,7 @@ namespace GlossaryDemo.Systems
             if (DemoInput.KeyDown(Key.L)) Toggle();
             if (DemoInput.KeyDown(Key.G)) { gold += 100; RefreshDynamic(); }
 
-            GlossaryInfoPanel.Status = $"현재 언어: <b>{Localization.Current}</b>   테이블 키 {table.entries.Count}개\n" +
+            GlossaryInfoPanel.Status = $"현재 언어: <b>{Localization.Current}</b>   테이블 키 {(table != null && table.entries != null ? table.entries.Count : 0)}개\n" +
                                        $"Get(\"menu_start\") = \"{Localization.Get("menu_start")}\"";
         }
 

@@ -22,13 +22,16 @@ public static class Build0604_TextMeshPro
         var latin = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(LatinFontPath);
 
         // ── 샘플 텍스트 (폰트 전환 대상) ──
-        var fontLabel = Body(root, "FontLabel", new Vector2(10f, 470f), new Vector2(700f, 36f), "", 22f, TextAlignmentOptions.Left, TitleColor);
-        var sample = CreateText("SampleText", root, new Vector2(10f, 400f), new Vector2(700f, 90f), "안녕하세요, TextMeshPro! 가나다 ABC 123", 40f, Color.white, TextAlignmentOptions.Left);
+        var fontLabel = Body(root, "FontLabel", new Vector2(10f, 490f), new Vector2(700f, 36f), "", 22f, TextAlignmentOptions.Left, TitleColor);
+        var sample = CreateText("SampleText", root, new Vector2(10f, 445f), new Vector2(700f, 50f), "안녕하세요, TextMeshPro! 가나다 ABC 123", 34f, Color.white, TextAlignmentOptions.Left);
+        sample.enableAutoSizing = true;   // 폰트를 바꿔도 한 줄에 맞춤
+        sample.fontSizeMin = 20f;
+        sample.fontSizeMax = 34f;
 
         // ── 크기별 선명도 (SDF 는 확대해도 깨지지 않음) ──
-        CreateText("Size18", root, new Vector2(10f, 330f), new Vector2(700f, 30f), "18pt  SDF 폰트는 작게 써도", 18f, TextColor, TextAlignmentOptions.Left);
-        CreateText("Size32", root, new Vector2(10f, 290f), new Vector2(700f, 46f), "32pt  크게 써도 선명함", 32f, TextColor, TextAlignmentOptions.Left);
-        CreateText("Size64", root, new Vector2(10f, 220f), new Vector2(700f, 80f), "64pt  큰 제목", 64f, TextColor, TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
+        CreateText("Size18", root, new Vector2(10f, 400f), new Vector2(700f, 30f), "18pt  SDF 폰트는 작게 써도", 18f, TextColor, TextAlignmentOptions.Left);
+        CreateText("Size32", root, new Vector2(10f, 360f), new Vector2(700f, 46f), "32pt  크게 써도 선명함", 32f, TextColor, TextAlignmentOptions.Left);
+        CreateText("Size64", root, new Vector2(10f, 285f), new Vector2(700f, 80f), "64pt  큰 제목", 64f, TextColor, TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
 
         // ── 머티리얼 프리셋: 같은 폰트 아틀라스에 외곽선·그림자만 다른 머티리얼 ──
         var outlineMat = new Material(font.material);
@@ -40,12 +43,15 @@ public static class Build0604_TextMeshPro
         outlineMat.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.6f);
         outlineMat.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.3f);
         outlineMat = SaveAsset(outlineMat, "06_UI", "GlossaryFont_OutlineShadow.mat");
-        var fx = CreateText("OutlineText", root, new Vector2(10f, 140f), new Vector2(700f, 80f), "외곽선 + 그림자 (Material Preset)", 46f, new Color(1f, 0.9f, 0.5f), TextAlignmentOptions.Left);
+        var fx = CreateText("OutlineText", root, new Vector2(10f, 205f), new Vector2(700f, 60f), "외곽선 + 그림자 (Material Preset)", 36f, new Color(1f, 0.9f, 0.5f), TextAlignmentOptions.Left);
         fx.fontSharedMaterial = outlineMat;
         fx.fontStyle = FontStyles.Bold;
+        fx.enableAutoSizing = true;   // 한 줄(700px)에 맞춤 → 위아래 텍스트와 겹치지 않게
+        fx.fontSizeMin = 20f;
+        fx.fontSizeMax = 36f;
 
         // ── 입력창 (TMP_InputField) ──
-        var inputBg = Panel(root, "InputField", new Vector2(10f, 50f), new Vector2(700f, 64f), new Color32(30, 33, 42, 255));
+        var inputBg = Panel(root, "InputField", new Vector2(10f, 130f), new Vector2(700f, 64f), new Color32(30, 33, 42, 255));
         var area = CreateRect("Text Area", inputBg.transform, Vector2.zero, Vector2.zero);
         Stretch(area, 0f);
         area.offsetMin = new Vector2(16f, 8f);
@@ -64,8 +70,13 @@ public static class Build0604_TextMeshPro
         input.fontAsset = font;
         input.pointSize = 28f;
 
-        var preview = CreateText("Preview", root, new Vector2(10f, -60f), new Vector2(700f, 120f), "", 72f, Color.white, TextAlignmentOptions.Left);
+        var preview = CreateText("Preview", root, new Vector2(10f, 30f), new Vector2(700f, 110f), "", 56f, Color.white, TextAlignmentOptions.Left);
         preview.richText = true;
+        // 입력 길이와 상관없이 칸(700x110) 안에 들어오게: 자동 크기 + 넘치면 잘라냄 (아래 가이드 패널과 겹치지 않게)
+        preview.enableAutoSizing = true;
+        preview.fontSizeMin = 22f;
+        preview.fontSizeMax = 56f;
+        preview.overflowMode = TextOverflowModes.Truncate;
 
         // ── 아틀라스 텍스처 보기 ──
         var atlasTitle = Body(root, "AtlasLabel", new Vector2(650f, 470f), new Vector2(460f, 36f), "", 22f, TextAlignmentOptions.Left, TitleColor);

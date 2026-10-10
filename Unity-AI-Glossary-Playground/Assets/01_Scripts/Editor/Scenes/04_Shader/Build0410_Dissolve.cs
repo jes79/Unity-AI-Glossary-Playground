@@ -30,8 +30,9 @@ public static class Build0410_Dissolve
 
         var instant = Character("Character_SetActive", new Vector3(-1.8f, 0f, 0f), plainMat);
         var dissolve = Character("Character_Dissolve", new Vector3(1.8f, 0f, 0f), dissolveMat);
-        WorldLabel("SetActive(false)", new Vector3(-1.8f, 2.9f, 0f), ctx.Camera, 2.6f);
-        WorldLabel("Dissolve 1초", new Vector3(1.8f, 2.9f, 0f), ctx.Camera, 2.6f);
+        // 이름표는 발 앞 바닥 쪽에 둔다: 머리 위(y 2.9)에 두면 화면 왼쪽 위 정보 패널(600x460) 영역에 가려짐
+        WorldLabel("SetActive(false)", new Vector3(-1.8f, 0.25f, -1.3f), ctx.Camera, 2.6f);
+        WorldLabel("Dissolve 1초", new Vector3(1.8f, 0.25f, -1.3f), ctx.Camera, 2.6f);
 
         var demo = new GameObject("DissolveDemo").AddComponent<DissolveDemo>();
         Set(demo, "instantCharacter", instant);

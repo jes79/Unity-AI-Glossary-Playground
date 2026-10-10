@@ -21,11 +21,20 @@ namespace GlossaryDemo.Rendering
             onExpired = expired;
         }
 
+        // 풀에 반납되거나 씬이 내려갈 때 콜백 참조를 끊어 둠 (재진입 방지)
+        private void OnDisable() => onExpired = null;
+
         private void Update()
         {
             transform.position += transform.forward * (speed * Time.deltaTime);
             age += Time.deltaTime;
-            if (age >= lifeTime) onExpired?.Invoke(this);
+            if (age >= lifeTime)
+            {
+                // 콜백은 딱 한 번만: 비우고 나서 호출 (Destroy 가 프레임 끝에 처리되는 동안 중복 호출 방지)
+                var cb = onExpired;
+                onExpired = null;
+                cb?.Invoke(this);
+            }
         }
     }
 }

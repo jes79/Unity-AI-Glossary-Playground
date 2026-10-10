@@ -18,7 +18,11 @@ namespace GlossaryDemo.Rendering
         [SerializeField] private int maxSize = 100;
         [SerializeField] private bool firing = true;
 
+        // 한 프레임에 쏠 수 있는 최대 발수 (렉으로 deltaTime 이 커져도 while 이 길게 돌지 않게)
+        private const int MaxShotsPerFrame = 16;
+
         private ObjectPool<PoolBullet> pool;
+        private bool tearingDown;   // 씬 언로드/파괴 중이면 풀 반납·파괴 콜백을 무시
         private float leftTimer, rightTimer;
         private int instantiateCount, destroyCount, poolCreateCount, poolGetCount, poolReleaseCount;
         private ProfilerRecorder gcAlloc;
@@ -29,15 +33,30 @@ namespace GlossaryDemo.Rendering
             pool = new ObjectPool<PoolBullet>(
                 createFunc: () => { poolCreateCount++; return Instantiate(bulletPrefab, transform); },
                 actionOnGet: b => { poolGetCount++; b.gameObject.SetActive(true); },
-                actionOnRelease: b => { poolReleaseCount++; b.gameObject.SetActive(false); },
-                actionOnDestroy: b => Destroy(b.gameObject),   // maxSize 를 넘어 반납되면 진짜로 파괴
+                actionOnRelease: b => { poolReleaseCount++; if (b != null) b.gameObject.SetActive(false); },
+                actionOnDestroy: b => { if (!tearingDown && b != null) Destroy(b.gameObject); },   // maxSize 를 넘어 반납되면 진짜로 파괴
                 collectionCheck: true,                         // 같은 걸 두 번 반납하면 에러 (개발 중 실수 방지)
                 defaultCapacity: defaultCapacity,
                 maxSize: maxSize);
         }
 
         private void OnEnable() => gcAlloc = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame");
-        private void OnDisable() => gcAlloc.Dispose();
+        private void OnDisable()
+        {
+            if (gcAlloc.Valid) gcAlloc.Dispose();
+            gcAlloc = default;
+        }
+
+        // 씬을 떠날 때: 총알들은 이 오브젝트의 자식이라 씬과 함께 파괴됨.
+        // 풀 콜백(Release/Destroy)이 파괴 중인 오브젝트를 다시 건드리지 않도록 플래그를 세우고 풀만 비움
+        private void OnDestroy()
+        {
+            tearingDown = true;
+            firing = false;
+            var p = pool;
+            pool = null;
+            p?.Dispose();   // tearingDown 이므로 actionOnDestroy 는 아무것도 하지 않음
+        }
 
         private void Update()
         {
@@ -45,13 +64,18 @@ namespace GlossaryDemo.Rendering
             if (DemoInput.KeyDown(Key.UpArrow)) ChangeRate(10f);
             if (DemoInput.KeyDown(Key.DownArrow)) ChangeRate(-10f);
 
+            if (pool == null) return;
+
             if (firing)
             {
-                float interval = 1f / shotsPerSecond;
-                leftTimer += Time.deltaTime;
-                while (leftTimer >= interval) { leftTimer -= interval; FireInstantiate(); }
-                rightTimer += Time.deltaTime;
-                while (rightTimer >= interval) { rightTimer -= interval; FirePooled(); }
+                float interval = 1f / Mathf.Max(1f, shotsPerSecond);
+                float dt = Mathf.Max(0f, Time.deltaTime);
+                leftTimer += dt;
+                for (int n = 0; leftTimer >= interval && n < MaxShotsPerFrame; n++) { leftTimer -= interval; FireInstantiate(); }
+                if (leftTimer >= interval) leftTimer = 0f;   // 못 쏜 몫은 버림 (따라잡기 폭주 방지)
+                rightTimer += dt;
+                for (int n = 0; rightTimer >= interval && n < MaxShotsPerFrame; n++) { rightTimer -= interval; FirePooled(); }
+                if (rightTimer >= interval) rightTimer = 0f;
             }
 
             GlossaryInfoPanel.Status =
@@ -67,14 +91,21 @@ namespace GlossaryDemo.Rendering
         {
             var b = Instantiate(bulletPrefab, transform);
             instantiateCount++;
-            b.Launch(leftMuzzle.position, Spread(leftMuzzle.forward), x => { destroyCount++; Destroy(x.gameObject); });
+            b.Launch(leftMuzzle.position, Spread(leftMuzzle.forward), x => { destroyCount++; if (x != null) Destroy(x.gameObject); });
         }
 
         // 좋은 예: 풀에서 꺼내고, 끝나면 풀에 반납
         private void FirePooled()
         {
             var b = pool.Get();
-            b.Launch(rightMuzzle.position, Spread(rightMuzzle.forward), pool.Release);
+            b.Launch(rightMuzzle.position, Spread(rightMuzzle.forward), ReleasePooled);
+        }
+
+        // 반납: 파괴 중이거나 이미 풀에 있는(비활성) 총알은 다시 반납하지 않음
+        private void ReleasePooled(PoolBullet b)
+        {
+            if (tearingDown || pool == null || b == null || !b.gameObject.activeSelf) return;
+            pool.Release(b);
         }
 
         private static Vector3 Spread(Vector3 fwd) =>

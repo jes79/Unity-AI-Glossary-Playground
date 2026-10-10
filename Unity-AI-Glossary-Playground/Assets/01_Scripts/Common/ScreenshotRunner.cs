@@ -12,7 +12,7 @@ namespace GlossaryDemo
     // 인자가 없으면 아무 일도 하지 않음 (일반 실행에 영향 없음)
     public class ScreenshotRunner : MonoBehaviour
     {
-        private const float WaitSeconds = 3f; // 씬 로드 후 연출이 자리 잡을 때까지 대기
+        private float waitSeconds = 3f; // 씬 로드 후 연출이 자리 잡을 때까지 대기 (-glossaryShotWait 로 변경)
 
         private string outputDir;
         private readonly List<string> scenes = new List<string>();
@@ -21,11 +21,12 @@ namespace GlossaryDemo
         private static void Init()
         {
             string[] args = System.Environment.GetCommandLineArgs();
-            string dir = null, list = null;
+            string dir = null, list = null, wait = null;
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "-glossaryShots") dir = args[i + 1];
                 if (args[i] == "-glossaryShotList") list = args[i + 1];
+                if (args[i] == "-glossaryShotWait") wait = args[i + 1];
             }
             if (dir == null) return;
 
@@ -33,6 +34,7 @@ namespace GlossaryDemo
             DontDestroyOnLoad(go);
             var runner = go.AddComponent<ScreenshotRunner>();
             runner.outputDir = dir;
+            if (wait != null && float.TryParse(wait, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float w)) runner.waitSeconds = w;
             if (list != null)
             {
                 runner.scenes.AddRange(list.Split(','));
@@ -51,9 +53,10 @@ namespace GlossaryDemo
             {
                 if (!Application.CanStreamedLevelBeLoaded(sceneName)) continue;
 
+                Debug.Log($"[Shot] {sceneName}"); // Player.log 에서 씬별 오류를 구분하기 위한 표시
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(sceneName);
-                yield return new WaitForSecondsRealtime(WaitSeconds);
+                yield return new WaitForSecondsRealtime(waitSeconds);
                 yield return new WaitForEndOfFrame();
 
                 ScreenCapture.CaptureScreenshot(Path.Combine(outputDir, sceneName + ".png"));

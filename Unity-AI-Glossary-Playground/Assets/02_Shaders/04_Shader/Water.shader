@@ -96,6 +96,7 @@ Shader "Glossary/Shader/Water"
                 // ── 1) 물 깊이: 바닥 깊이 - 수면 깊이 ──
                 float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
                 float sceneEyeDepth = LinearEyeDepth(SampleSceneDepth(screenUV), _ZBufferParams);
+                // 둘 다 "카메라 앞쪽으로의 선형 거리(m)" 라 바로 빼도 됨 (원근 카메라 기준)
                 float waterDepth = max(sceneEyeDepth - input.eyeDepth, 0.0);
                 float depth01 = saturate(waterDepth / _DepthMaxDistance);
                 depth01 = lerp(0.5, depth01, _UseDepth); // Depth OFF 비교용: 어디나 같은 색
@@ -114,10 +115,14 @@ Shader "Glossary/Shader/Water"
                 half diffuse = saturate(dot(normalWS, mainLight.direction)) * 0.5 + 0.5;
                 color.rgb = color.rgb * (mainLight.color * diffuse + GlossaryAmbient(normalWS) * 0.5) + spec * mainLight.color;
 
-                // ── 3) 거품: 바닥/물체와 아주 가까운 곳(얕은 곳)에 노이즈 모양으로 ──
+                // ── 3) 거품: 바닥/물체와 아주 가까운 곳(물 깊이 < _FoamDistance)에만, 가장자리를 노이즈로 흐트림 ──
+                // foamBand: 닿는 경계(깊이 0)에서 1, _FoamDistance 이상 깊으면 0
+                // (예전 코드는 깊은 곳에서도 cutoff 가 0.85 로 고정돼 노이즈 > 0.85 인 점마다 거품이 찍혔음)
                 half foamNoise = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, uv * 1.6 + float2(t * 0.05, 0)).r;
-                half foamCutoff = saturate(waterDepth / max(_FoamDistance, 0.001)) * 0.85;
-                half foam = smoothstep(foamCutoff - 0.05, foamCutoff + 0.05, foamNoise) * _UseDepth * step(0.0001, _FoamDistance);
+                half foamBand = 1.0 - saturate(waterDepth / max(_FoamDistance, 0.001));
+                // 노이즈 흔들림 폭(±0.25) < 임계값(0.5) → foamBand 가 0 인 깊은 물에서는 거품이 절대 생기지 않음
+                half foam = smoothstep(0.5, 0.6, foamBand + (foamNoise - 0.5) * 0.5);
+                foam *= _UseDepth * step(0.0001, _FoamDistance);
                 color.rgb = lerp(color.rgb, _FoamColor.rgb, foam);
                 color.a = saturate(max(color.a, foam));
                 return color;

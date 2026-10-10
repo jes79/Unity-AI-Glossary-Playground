@@ -24,10 +24,11 @@ namespace GlossaryDemo.Systems
 
         public string Get(string key, Language lang)
         {
+            if (entries == null || string.IsNullOrEmpty(key)) return key ?? "";
             if (lookup == null || lookup.Count != entries.Count)
             {
                 lookup = new Dictionary<string, Entry>();
-                foreach (var e in entries) lookup[e.key] = e;
+                foreach (var e in entries) if (e != null && e.key != null) lookup[e.key] = e;
             }
             if (!lookup.TryGetValue(key, out var entry)) return $"#{key}#"; // 빠진 키는 눈에 띄게
             string s = lang == Language.Korean ? entry.korean : entry.english;

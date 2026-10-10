@@ -19,7 +19,7 @@ namespace GlossaryDemo.Systems
         public void Refresh()
         {
             if (text == null) text = GetComponent<TMP_Text>();
-            text.text = Localization.Get(key);
+            if (text != null) text.text = Localization.Get(key);
         }
     }
 }
