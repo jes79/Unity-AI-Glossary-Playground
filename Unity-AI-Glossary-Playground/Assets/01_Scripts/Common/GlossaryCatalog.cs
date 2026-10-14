@@ -27,6 +27,10 @@ namespace GlossaryDemo
         public string CategoryName => GlossaryCatalog.Categories[Category - 1];
         public string Folder => GlossaryCatalog.CategoryFolders[Category - 1];
         public string ScenePath => $"Assets/00_Scenes/{Folder}/{Scene}.unity";
+
+        // 개념 설명과 확인 포인트 (= 테스트 방법). 본문은 GlossaryCatalog.Guide.cs
+        public string Concept => GlossaryCatalog.ConceptOf(Id);
+        public string Check => GlossaryCatalog.CheckOf(Id);
     }
 
     public static partial class GlossaryCatalog

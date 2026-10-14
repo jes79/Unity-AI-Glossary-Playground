@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using GlossaryDemo;
 using TMPro;
 using UnityEditor;
@@ -41,6 +42,9 @@ public static class GlossaryKit
 
     private const string FontAssetPath = "Assets/Resources/Fonts/GlossaryFont.asset";
     private const string FontSourcePath = "Assets/06_Fonts/malgun.ttf";
+
+    // 시스템에서 찾아볼 한글 폰트 (맑은 고딕이 없는 환경 대비)
+    private static readonly string[] KoreanSystemFonts = { "malgun.ttf", "NanumGothic.ttf", "gulim.ttc", "batang.ttc", "AppleSDGothicNeo.ttc" };
 
     public static readonly Color BgColor = new Color32(24, 26, 33, 255);
     public static readonly Color PanelColor = new Color32(45, 49, 61, 255);
@@ -133,6 +137,10 @@ public static class GlossaryKit
 
     // Windows 의 맑은 고딕을 프로젝트로 복사해 동적 TMP 폰트 에셋을 만들고 TMP 기본 폰트로 지정
     // (malgun.ttf 는 재배포 라이선스 문제로 .gitignore 처리, 없으면 이 메서드가 다시 복사함)
+    //
+    // GlossaryFont.asset 자체는 git 에 있지만 원본 ttf 는 없으므로, 새로 받은 프로젝트에서는
+    // 폰트 에셋의 원본 참조가 끊긴 상태다. 동적 폰트는 원본이 없으면 글리프를 하나도 만들지 못해
+    // 모든 TMP 텍스트가 '보이지 않는' 상태가 된다 → 에디터를 열 때 GlossaryFontGuard 가 이걸 호출해 고친다.
     [MenuItem("Tools/Glossary/Setup Korean Font")]
     public static TMP_FontAsset EnsureKoreanFont()
     {
@@ -141,20 +149,30 @@ public static class GlossaryKit
 
         EnsureFolder("Assets/06_Fonts");
         EnsureFolder("Assets/Resources/Fonts");
-        if (!File.Exists(FontSourcePath))
+
+        var font = EnsureSourceFontFile(existing);
+        if (font == null)
         {
-            string sys = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "malgun.ttf");
-            if (!File.Exists(sys))
-            {
-                Debug.LogWarning("맑은 고딕(malgun.ttf)을 찾지 못함. 한글이 □ 로 보일 수 있음");
-                return TMP_Settings.defaultFontAsset;
-            }
-            File.Copy(sys, FontSourcePath);
-            AssetDatabase.ImportAsset(FontSourcePath);
+            Debug.LogWarning("한글 폰트(맑은 고딕 등)를 찾지 못함. 한글이 □ 로 보이거나 안 보일 수 있음. " +
+                             "한글 ttf 를 Assets/06_Fonts 에 넣고 Tools > Glossary > Setup Korean Font 를 다시 실행하세요");
+            return TMP_Settings.defaultFontAsset;
         }
 
-        var font = AssetDatabase.LoadAssetAtPath<Font>(FontSourcePath);
-        if (existing != null) AssetDatabase.DeleteAsset(FontAssetPath);
+        // 원본만 다시 이어 붙여 고칠 수 있으면 그렇게 한다.
+        // 에셋을 지우고 새로 만들면 GUID 가 바뀌어 이미 만들어 둔 182개 씬의 폰트 참조가 모두 끊긴다.
+        if (existing != null)
+        {
+            // ttf 를 기록된 GUID 로 되돌려 넣었으면 다시 읽기만 해도 참조가 살아난다
+            existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetPath);
+            if (existing != null && existing.sourceFontFile == null) RelinkSourceFont(existing, font);
+            if (existing.sourceFontFile != null)
+            {
+                Debug.Log($"[GlossaryKit] 한글 폰트 원본을 다시 연결했습니다: {AssetDatabase.GetAssetPath(font)}");
+                SetTmpDefaultFont(existing);
+                return existing;
+            }
+            AssetDatabase.DeleteAsset(FontAssetPath);
+        }
 
         var fa = TMP_FontAsset.CreateFontAsset(font, 64, 6, GlyphRenderMode.SDFAA, 2048, 2048, AtlasPopulationMode.Dynamic, true);
         fa.name = "GlossaryFont";
@@ -165,17 +183,93 @@ public static class GlossaryKit
         AssetDatabase.AddObjectToAsset(fa.material, fa);
         EditorUtility.SetDirty(fa);
         AssetDatabase.SaveAssets();
-
-        // TMP 기본 폰트로 지정 → 새로 만드는 모든 TextMeshPro 가 한글을 표시
-        var settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>("Assets/TextMesh Pro/Resources/TMP Settings.asset");
-        if (settings != null)
-        {
-            var so = new SerializedObject(settings);
-            so.FindProperty("m_defaultFontAsset").objectReferenceValue = fa;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            AssetDatabase.SaveAssets();
-        }
+        SetTmpDefaultFont(fa);
         return fa;
+    }
+
+    // Assets/06_Fonts 의 한글 ttf 를 돌려줌. 없으면 시스템 폰트에서 복사해 온다
+    private static Font EnsureSourceFontFile(TMP_FontAsset existing)
+    {
+        if (File.Exists(FontSourcePath)) return AssetDatabase.LoadAssetAtPath<Font>(FontSourcePath);
+
+        // 누군가 다른 한글 폰트를 직접 넣어 둔 경우
+        foreach (string guid in AssetDatabase.FindAssets("t:Font", new[] { "Assets/06_Fonts" }))
+        {
+            var found = AssetDatabase.LoadAssetAtPath<Font>(AssetDatabase.GUIDToAssetPath(guid));
+            if (found != null) return found;
+        }
+
+        string fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+        string sys = KoreanSystemFonts.Select(f => Path.Combine(fontsDir, f)).FirstOrDefault(File.Exists);
+        if (sys == null) return null;
+
+        string dest = $"Assets/06_Fonts/{Path.GetFileName(sys)}";
+        File.Copy(sys, dest);
+
+        // git 에 들어 있는 GlossaryFont.asset 이 기억하는 GUID 로 .meta 를 먼저 써 두면
+        // import 하는 순간 끊겼던 참조가 그대로 이어진다 (폰트 에셋 파일을 건드리지 않아도 됨)
+        string wantedGuid = existing != null ? RecordedSourceFontGuid() : null;
+        if (!string.IsNullOrEmpty(wantedGuid) && !File.Exists(dest + ".meta"))
+            File.WriteAllText(dest + ".meta",
+                "fileFormatVersion: 2\n" +
+                $"guid: {wantedGuid}\n" +
+                "TrueTypeFontImporter:\n" +
+                "  externalObjects: {}\n" +
+                "  serializedVersion: 4\n" +
+                "  fontSize: 16\n" +
+                "  forceTextureCase: -2\n" +
+                "  characterSpacing: 0\n" +
+                "  characterPadding: 1\n" +
+                "  includeFontData: 1\n" +
+                "  fontNames: []\n" +
+                "  fallbackFontReferences: []\n" +
+                "  customCharacters: \n" +
+                "  fontRenderingMode: 0\n" +
+                "  ascentCalculationMode: 1\n" +
+                "  useLegacyBoundsCalculation: 0\n" +
+                "  shouldRoundAdvanceValue: 1\n" +
+                "  userData: \n" +
+                "  assetBundleName: \n" +
+                "  assetBundleVariant: \n");
+
+        AssetDatabase.ImportAsset(dest, ImportAssetOptions.ForceUpdate);
+        AssetDatabase.Refresh();
+        return AssetDatabase.LoadAssetAtPath<Font>(dest);
+    }
+
+    // GlossaryFont.asset 이 기록해 둔 원본 ttf 의 GUID (m_SourceFontFileGUID)
+    private static string RecordedSourceFontGuid()
+    {
+        if (!File.Exists(FontAssetPath)) return null;
+        var m = Regex.Match(File.ReadAllText(FontAssetPath), @"m_SourceFontFileGUID:\s*([0-9a-f]{32})");
+        return m.Success ? m.Groups[1].Value : null;
+    }
+
+    // sourceFontFile 은 내부(internal) 세터라 SerializedObject 로 넣는다
+    private static void RelinkSourceFont(TMP_FontAsset fontAsset, Font source)
+    {
+        var so = new SerializedObject(fontAsset);
+        so.FindProperty("m_SourceFontFile").objectReferenceValue = source;
+        var guidProp = so.FindProperty("m_SourceFontFileGUID");
+        if (guidProp != null) guidProp.stringValue = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(source));
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        fontAsset.ClearFontAssetData(true); // 원본이 바뀌었으니 남아 있던 글리프 기록을 비움
+        EditorUtility.SetDirty(fontAsset);
+        AssetDatabase.SaveAssets();
+    }
+
+    // TMP 기본 폰트로 지정 → 새로 만드는 모든 TextMeshPro 가 한글을 표시
+    private static void SetTmpDefaultFont(TMP_FontAsset fontAsset)
+    {
+        var settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>("Assets/TextMesh Pro/Resources/TMP Settings.asset");
+        if (settings == null) return;
+        var so = new SerializedObject(settings);
+        var prop = so.FindProperty("m_defaultFontAsset");
+        if (prop.objectReferenceValue == fontAsset) return;
+        prop.objectReferenceValue = fontAsset;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssets();
     }
 
     public static TMP_FontAsset Font => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetPath) ?? EnsureKoreanFont();

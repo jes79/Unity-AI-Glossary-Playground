@@ -12,7 +12,7 @@
 
 ## 스크린샷
 
-모든 씬 왼쪽 위에 용어 · 쉽게 말하면 · 요청 예문 · 조작법 · 실시간 상태를 보여 주는 정보 패널이 있습니다.
+모든 씬 왼쪽 위에 용어 · 쉽게 말하면 · 조작법 · 확인 포인트 · 개념 · 요청 예문 · 실시간 상태를 보여 주는 정보 패널이 있습니다.
 
 | | |
 | --- | --- |
@@ -29,10 +29,12 @@
 
 1. Unity Hub에서 `Unity-AI-Glossary-Playground` 폴더를 엽니다.
 2. 메뉴 `Tools > Glossary > Build All Scenes`를 실행합니다. 씬과 생성 에셋을 코드로 다시 만들고, Build Settings에 등록합니다.
-   (한글 폰트는 Windows의 맑은 고딕을 복사해 TMP 동적 폰트로 만듭니다. 재배포 문제로 `malgun.ttf`는 git에 올리지 않습니다.)
+   (한글 폰트는 Windows의 맑은 고딕을 복사해 TMP 동적 폰트로 만듭니다. 재배포 문제로 `malgun.ttf`는 git에 올리지 않으므로, 저장소를 새로 받으면 폰트 원본이 없어 글자가 보이지 않습니다.
+   프로젝트를 열면 `GlossaryFontGuard`가 이를 감지해 자동으로 복구합니다. 수동으로는 `Tools > Glossary > Setup Korean Font`.)
 3. `Assets/00_Scenes/0000_Hub.unity`를 열고 Play → 왼쪽에서 분야, 오른쪽에서 용어를 고르면 해당 씬으로 이동합니다.
 
-각 씬 왼쪽 위 정보 패널에 **용어 · 쉽게 말하면 · 요청 예문 · 조작법 · 실시간 상태**가 표시됩니다. `F1`로 접고, `[허브]`로 돌아갑니다.
+각 씬 왼쪽 위 정보 패널에 **용어 · 쉽게 말하면 · 조작법 · 확인 포인트(무엇을 보면 되는지) · 개념 · 요청 예문 · 실시간 상태**가 표시됩니다.
+`F1`로 패널 전체를 접고, `F2`로 개념·요청 예문만 접습니다(길어서 화면을 넘치면 자동으로 접힙니다). `[허브]`로 목록으로 돌아갑니다.
 
 ## 분야
 
@@ -74,6 +76,7 @@ tools/compile-check/           Unity 없이 C# 컴파일 검사 (dotnet)
 - `Tools > Glossary > Rendering/Patterns > …` : 라이트맵·오클루전 굽기, 적 스포너 창 등 데모용 에디터 도구
 - `Tools > Glossary > Build Screenshot Player` : README 스크린샷용 Windows 플레이어 빌드
   (`Builds/Screenshots/Glossary.exe -glossaryShots <폴더> -glossaryShotList 0000_Hub,0415_Hologram` 로 실행하면 자동 캡처 후 종료)
+  `-glossaryOverlapCheck -glossaryNoCapture` 를 주면 캡처 대신 정보 패널이 데모 UI 를 가리는 씬을 Player.log 에 적음
 
 명령줄 일괄 생성 + 점검:
 

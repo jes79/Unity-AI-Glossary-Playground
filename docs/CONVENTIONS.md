@@ -72,9 +72,16 @@ public static class Build0105_CoyoteTime
 ```
 
 - 씬 시작: `NewScene3D(id, controls, ground)` / `NewScene2D(id, controls)` / `NewSceneUI(id, controls)`.
-  모두 EventSystem 과 **정보 패널**(`GlossaryInfoPanel`: 용어·쉽게 말하면·요청 예문·조작법)을 자동으로 넣는다.
+  모두 EventSystem 과 **정보 패널**(`GlossaryInfoPanel`: 용어·쉽게 말하면·조작법·확인 포인트·개념·요청 예문)을 자동으로 넣는다.
 - `controls` 문자열에는 조작법과 "무엇을 관찰할지"를 2~4줄로 쓴다.
-- 데모 UI 는 화면 **왼쪽 위 600×420 영역**(정보 패널 자리)을 피해서 배치한다.
+- 새 용어를 추가하면 `GlossaryCatalog.Data.cs` 의 항목과 함께 **`GlossaryCatalog.Guide.cs` 에도 같은 id 로
+  `개념`(무엇이고 언제 쓰나)과 `확인 포인트`(씬에서 무엇을 보면 되나)를 넣는다.** 둘이 비면 패널에서 해당 줄이 빠진다.
+  같은 문장을 위키(`docs/wiki/{분야}.md`)와 Notion DB 의 `개념`·`확인 포인트` 칸에도 맞춰 둔다.
+- 데모 UI 는 화면 **왼쪽 위 600×700 영역**(1920×1080 기준, 정보 패널 자리)을 피해서 배치한다.
+  패널 높이는 글자 길이에 따라 513~1012px 로 변하므로 여유를 두는 편이 안전하다.
+  실제로 가리는지는 빌드한 플레이어에 `-glossaryOverlapCheck -glossaryNoCapture` 를 주고 돌리면
+  `[PanelOverlap] {씬} {UI 경로} {몇 %}` 로 Player.log 에 나온다.
+  (패널이 화면 아래로 넘칠 만큼 길어지면 `개념`·`요청 예문` 블록은 자동으로 접히고 F2 로 다시 펼 수 있다.)
 - 실시간 값은 `GlossaryInfoPanel.Status = "..."` 로 정보 패널 아래에 표시한다.
 - 직렬화 필드는 `[SerializeField] private` + `[Header]`/`[Range]`, 빌더에서 `Set/SetFloat/SetLayerMask...`로 연결.
 - 버튼은 `CreateButtonRow(ctx.Canvas.transform, 60f, "A", "B")` + `OnClick(btn, component.Method)` (영구 리스너).

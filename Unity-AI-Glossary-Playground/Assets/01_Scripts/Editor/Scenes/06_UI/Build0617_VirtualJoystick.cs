@@ -40,7 +40,7 @@ public static class Build0617_VirtualJoystick
         // 터치 영역 (투명 Image: alpha 0 이어도 Raycast Target 이면 포인터 이벤트를 받음)
         var area = CreateImage("JoystickTouchArea", root, Vector2.zero, new Vector2(760f, 560f), new Color(1f, 1f, 1f, 0.03f));
         Anchor(area.rectTransform, Vector2.zero, Vector2.zero, Vector2.zero);
-        CreateText("AreaHint", area.transform, new Vector2(0f, 240f), new Vector2(700f, 36f), "터치 영역 (플로팅 모드에선 여기 아무 곳이나)", 20f, new Color(1f, 1f, 1f, 0.3f));
+        CreateText("AreaHint", area.transform, new Vector2(0f, 90f), new Vector2(700f, 36f), "터치 영역 (플로팅 모드에선 여기 아무 곳이나)", 20f, new Color(1f, 1f, 1f, 0.3f));
 
         var bg = CreateImage("Background", area.transform, new Vector2(-150f, -90f), new Vector2(260f, 260f), new Color(1f, 1f, 1f, 0.22f), CircleSprite);
         bg.raycastTarget = false;

@@ -28,6 +28,19 @@ public static class GlossaryValidator
                     problems.Add($"[Shader] {path}:{msg.line} {msg.message}");
         }
 
+        // 새 용어를 넣고 GlossaryCatalog.Guide.cs 를 빼먹으면 정보 패널에서 그 줄만 조용히 사라진다.
+        // 빠진 것은 여기서 잡는다 (docs/CONVENTIONS.md 참고)
+        foreach (var entry in GlossaryCatalog.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Concept))
+                problems.Add($"[{entry.Id}] GlossaryCatalog.Guide.cs 에 '개념' 없음");
+            if (string.IsNullOrWhiteSpace(entry.Check))
+                problems.Add($"[{entry.Id}] GlossaryCatalog.Guide.cs 에 '확인 포인트' 없음");
+        }
+        foreach (string id in GlossaryCatalog.Guide.Keys)
+            if (!GlossaryCatalog.TryFind(id, out _))
+                problems.Add($"[{id}] Guide 에는 있는데 카탈로그에 없는 id");
+
         foreach (var entry in GlossaryCatalog.Entries)
         {
             if (!File.Exists(entry.ScenePath))
@@ -74,5 +87,12 @@ public static class GlossaryBatch
     {
         GlossaryKit.BatchBuildAll();
         GlossaryValidator.ValidateAll();
+    }
+
+    // 한글 폰트만 복구 (명령줄용)
+    public static void SetupFont()
+    {
+        var fa = GlossaryKit.EnsureKoreanFont();
+        Debug.Log($"[GlossaryBatch] 폰트: {fa?.name}, 원본: {(fa != null && fa.sourceFontFile != null ? fa.sourceFontFile.name : "없음")}");
     }
 }

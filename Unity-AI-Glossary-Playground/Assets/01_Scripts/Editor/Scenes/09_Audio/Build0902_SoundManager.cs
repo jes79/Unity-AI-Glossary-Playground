@@ -47,7 +47,7 @@ public static class Build0902_SoundManager
         SoundManagerDemo first = null;
         for (int i = 0; i < names.Length; i++)
         {
-            float x = -4.5f + i * 3f;
+            float x = -2.2f + i * 3f; // 왼쪽 위 정보 패널을 피해 오른쪽으로
             var sr = CreateSpriteObject(labels[i], i == 1 ? CircleSprite : SquareSprite, new Vector3(x, 0.5f), new Vector2(1.4f, 1.4f), colors[i]);
             var caller = sr.gameObject.AddComponent<SoundManagerDemo>();
             SetString(caller, "soundName", names[i]);

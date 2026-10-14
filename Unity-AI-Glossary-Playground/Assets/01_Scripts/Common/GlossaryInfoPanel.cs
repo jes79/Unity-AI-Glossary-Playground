@@ -24,9 +24,19 @@ namespace GlossaryDemo
         private static TMP_FontAsset font;
 
         private RectTransform body;
+        private RectTransform panelRect;    // 패널 전체 (높이가 화면을 넘는지 재는 용도)
+        private RectTransform canvasRect;
+        private RectTransform details;      // 개념 · 요청 예문 (F2 로 접기)
         private TextMeshProUGUI statusText;
         private TextMeshProUGUI foldLabel;
+        private TextMeshProUGUI hintText;
         private bool folded;
+        private bool detailsOpen = true;
+        private bool autoCollapsed;         // 화면을 넘쳐서 자동으로 접은 적이 있는가
+
+        private const string HintText = "F1 : 패널 접기   F2 : 개념·요청 예문 접기";
+        private const string HintClosed = "F1 : 패널 접기   F2 : 개념·요청 예문 보기";
+        private const string HintAuto = "F1 : 패널 접기   F2 : 개념·요청 예문 보기 (화면을 넘쳐 접음)";
 
         // 데모 스크립트에서 현재 값(속도, 상태 이름 등)을 패널 아래쪽에 표시할 때 사용
         public static string Status
@@ -43,8 +53,23 @@ namespace GlossaryDemo
         {
             get
             {
-                if (font == null) font = Resources.Load<TMP_FontAsset>("Fonts/GlossaryFont");
-                if (font == null) font = TMP_Settings.defaultFontAsset;
+                if (font != null) return font;
+
+                var korean = Resources.Load<TMP_FontAsset>("Fonts/GlossaryFont");
+
+                // GlossaryFont 는 동적(Dynamic) 폰트라 원본 ttf 가 있어야 글리프를 만든다.
+                // 원본(malgun.ttf)은 재배포 라이선스 때문에 git 에 없으므로, 새로 받은 프로젝트에서는
+                // 이 참조가 끊겨 있고 그대로 쓰면 모든 글자가 '보이지 않는' 상태가 된다.
+                // → 에디터에서는 Tools > Glossary > Setup Korean Font 가 자동으로 고치고,
+                //   그래도 비어 있으면 기본 폰트로 떨어뜨려 최소한 글자는 보이게 한다.
+                if (korean != null && korean.sourceFontFile == null)
+                {
+                    Debug.LogWarning("[Glossary] 한글 폰트 원본(Assets/06_Fonts/malgun.ttf)이 없어 글자가 안 보입니다. " +
+                                     "Tools > Glossary > Setup Korean Font 를 실행하세요. 지금은 기본 폰트로 대체합니다.");
+                    korean = null;
+                }
+
+                font = korean != null ? korean : TMP_Settings.defaultFontAsset;
                 return font;
             }
         }
@@ -64,7 +89,9 @@ namespace GlossaryDemo
         private void Update()
         {
             var kb = Keyboard.current;
-            if (kb != null && kb.f1Key.wasPressedThisFrame) ToggleFold();
+            if (kb == null) return;
+            if (kb.f1Key.wasPressedThisFrame) ToggleFold();
+            if (kb.f2Key.wasPressedThisFrame) ToggleDetails();
         }
 
         public void ToggleFold()
@@ -72,6 +99,28 @@ namespace GlossaryDemo
             folded = !folded;
             body.gameObject.SetActive(!folded);
             foldLabel.text = folded ? "펼치기" : "접기";
+        }
+
+        public void ToggleDetails()
+        {
+            detailsOpen = !detailsOpen;
+            autoCollapsed = true; // 직접 조작한 뒤에는 자동으로 다시 접지 않음
+            if (details != null) details.gameObject.SetActive(detailsOpen);
+            if (hintText != null) hintText.text = detailsOpen ? HintText : HintClosed;
+        }
+
+        // 실시간 상태(Status)가 긴 씬에서는 패널이 화면 아래로 넘쳐 개념·요청 예문이 잘린다.
+        // 넘치는 순간 한 번만 자동으로 접고, 다시 보고 싶으면 F2 로 펼치게 둔다 (껐다 켰다 반복 방지)
+        private void LateUpdate()
+        {
+            if (autoCollapsed || folded || !detailsOpen) return;
+            if (panelRect == null || canvasRect == null || details == null) return;
+            if (panelRect.rect.height <= canvasRect.rect.height - 24f) return;
+
+            detailsOpen = false;
+            autoCollapsed = true;
+            details.gameObject.SetActive(false);
+            if (hintText != null) hintText.text = HintAuto;
         }
 
         public void GoHub()
@@ -116,6 +165,8 @@ namespace GlossaryDemo
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
             panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            panelRect = panel;
+            canvasRect = (RectTransform)canvasGo.transform;
 
             // 헤더: 제목 + 버튼
             var header = NewRect("Header", panel);
@@ -153,17 +204,36 @@ namespace GlossaryDemo
                 NewText("Category", body, $"{entry.CategoryName}{sub}", 18f, new Color(0.6f, 0.65f, 0.75f));
                 if (!string.IsNullOrEmpty(entry.Summary))
                     NewText("Summary", body, entry.Summary, 22f, Color.white);
-                var prompt = NewText("Prompt", body, $"<color=#7FB2FF>요청 예문</color>  {entry.Prompt}", 19f, new Color(0.82f, 0.86f, 0.95f));
-                prompt.fontStyle = FontStyles.Italic;
             }
 
+            // 조작법(지금 뭘 누르나) → 확인 포인트(그래서 뭘 보면 되나) 순서로 둠
             if (!string.IsNullOrEmpty(controls))
                 NewText("Controls", body, $"<color=#9BE89B>조작</color>\n{controls}", 19f, new Color(0.85f, 0.95f, 0.85f));
+
+            if (!string.IsNullOrEmpty(entry.Check))
+                NewText("Check", body, $"<color=#FFD479>확인 포인트</color>\n{entry.Check}", 18f, new Color(0.95f, 0.9f, 0.78f));
 
             statusText = NewText("Status", body, "", 19f, new Color(1f, 0.8f, 0.55f));
             statusText.gameObject.SetActive(false);
 
-            NewText("Hint", body, "F1 : 패널 접기/펼치기", 15f, new Color(0.5f, 0.53f, 0.6f));
+            // 개념 설명과 요청 예문은 길어서 F2 로 접고 펴는 '자세히' 블록에 둔다
+            details = NewRect("Details", body);
+            var dl = details.gameObject.AddComponent<VerticalLayoutGroup>();
+            dl.spacing = 6f;
+            dl.childControlWidth = dl.childControlHeight = true;
+            dl.childForceExpandWidth = true;
+            dl.childForceExpandHeight = false;
+
+            if (!string.IsNullOrEmpty(entry.Id))
+            {
+                if (!string.IsNullOrEmpty(entry.Concept))
+                    NewText("Concept", details, $"<color=#C8A8FF>개념</color>\n{entry.Concept}", 18f, new Color(0.88f, 0.85f, 0.95f));
+                var prompt = NewText("Prompt", details, $"<color=#7FB2FF>요청 예문</color>  {entry.Prompt}", 18f, new Color(0.82f, 0.86f, 0.95f));
+                prompt.fontStyle = FontStyles.Italic;
+            }
+            details.gameObject.SetActive(detailsOpen);
+
+            hintText = NewText("Hint", body, HintText, 15f, new Color(0.5f, 0.53f, 0.6f));
         }
 
         private static RectTransform NewRect(string name, Transform parent)
