@@ -18,7 +18,7 @@ public static class Build0610_DialogueTypewriter
 
         // 초상화
         var portrait = CreateImage("Portrait", root, Vector2.zero, new Vector2(240f, 240f), Color.white, CircleSprite);
-        Anchor(portrait.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-420f, 480f));
+        Anchor(portrait.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-230f, 480f)); // 왼쪽 위 정보 패널을 피함
         var glyph = CreateText("Glyph", portrait.transform, Vector2.zero, new Vector2(220f, 220f), "촌", 110f, Color.white);
         glyph.fontStyle = FontStyles.Bold;
 
