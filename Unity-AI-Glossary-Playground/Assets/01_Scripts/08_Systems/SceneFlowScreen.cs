@@ -46,12 +46,15 @@ namespace GlossaryDemo.Systems
                     if (DemoInput.JumpPressed) GoGame();
                     break;
                 case Role.Game:
-                    if (!loading)
+                    // 강의 모드에서는 담당자가 ①② 를 설명하는 동안 시계를 멈추고 ③ 직접 보기부터 진행
+                    bool clockRuns = !loading && LectureMode.DemoMayRun;
+                    if (clockRuns)
                     {
                         timer -= Time.deltaTime;
                         if (timer <= 0f) FinishGame();
                     }
-                    mainText.text = $"점수 <b>{score}</b>   남은 시간 {Mathf.Max(0f, timer):0.0}초";
+                    mainText.text = $"점수 <b>{score}</b>   남은 시간 {Mathf.Max(0f, timer):0.0}초" +
+                                    (LectureMode.DemoMayRun ? "" : "\n<size=60%>(강의: ③ 직접 보기에서 시작)</size>");
                     break;
                 case Role.Result:
                     mainText.text = $"<size=140%><b>RESULT</b></size>\n받은 점수: <size=150%><color=#FFD54A>{SceneFlow.LastScore}</color></size>\n최고 점수 {SceneFlow.BestScore}";

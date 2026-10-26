@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -7,6 +8,7 @@ namespace GlossaryDemo
 {
     // 허브 씬: 분야별 탭 + 용어 목록. 항목을 누르면 해당 데모 씬으로 이동
     // UI 는 런타임에 카탈로그를 읽어 코드로 생성
+    // 오른쪽 위 [강의 모드로 시작] = 고른 분야의 첫 용어부터 담당자가 설명 (강의 모드가 켜져 있으면 용어를 눌러도 그 용어부터 강의)
     public class HubMenu : MonoBehaviour
     {
         private static int lastCategory = 1;
@@ -14,6 +16,10 @@ namespace GlossaryDemo
         private RectTransform listContent;
         private ScrollRect scroll;
         private Image[] tabImages;
+        private TextMeshProUGUI subtitle;
+        private TextMeshProUGUI lectureToggleLabel;
+        private Image lectureToggleImage;
+        private TextMeshProUGUI presenterText;
 
         private static readonly Color Bg = new Color32(20, 22, 28, 255);
         private static readonly Color Card = new Color32(40, 44, 56, 255);
@@ -24,6 +30,42 @@ namespace GlossaryDemo
             Time.timeScale = 1f;
             Build();
             ShowCategory(lastCategory);
+        }
+
+        private void Update()
+        {
+            if (Keyboard.current != null && Keyboard.current[LectureMode.ToggleKey].wasPressedThisFrame && !LectureMode.TypingInInputField) ToggleLecture();
+        }
+
+        private void ToggleLecture()
+        {
+            LectureMode.SetEnabled(!LectureMode.Enabled);
+            RefreshLecture();
+        }
+
+        // 고른 분야의 첫 용어부터 강의 시작
+        private void StartLecture()
+        {
+            if (LectureMode.TryFirstOf(lastCategory, out var first)) LectureMode.StartAt(first);
+        }
+
+        private void OpenEntry(GlossaryEntry entry)
+        {
+            if (LectureMode.Enabled) LectureMode.StartAt(entry); // 강의 모드면 고른 용어부터 강의
+            else SceneManager.LoadScene(entry.Scene);
+        }
+
+        private void RefreshLecture()
+        {
+            bool on = LectureMode.Enabled;
+            lectureToggleLabel.text = on ? "강의 모드 켜짐 (F4)" : "강의 모드 꺼짐 (F4)";
+            lectureToggleImage.color = on ? Accent : Card;
+            subtitle.text = on
+                ? "강의 모드: 디렉터 인사 뒤 분야 담당자가 설명합니다. [강의 모드로 시작] = 분야 첫 용어부터, 용어를 누르면 그 용어부터."
+                : $"{GlossaryCatalog.Entries.Length}개 용어를 각각 씬으로 구현했습니다. 왼쪽에서 분야를 고르고 용어를 누르세요.";
+
+            var p = LecturePresenters.For(lastCategory);
+            presenterText.text = $"이 분야 담당  <color=#FFFFFF><b>{p.Role}</b></color>  ({LectureMode.CountInCategory(lastCategory)}개 용어)";
         }
 
         private void Build()
@@ -42,9 +84,29 @@ namespace GlossaryDemo
 
             var title = Text("Title", canvasGo.transform, "유니티 AI 요청 용어집 · 예제 씬", 48f, Color.white);
             title.fontStyle = FontStyles.Bold;
-            Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(1400f, 70f));
-            var sub = Text("Subtitle", canvasGo.transform, $"{GlossaryCatalog.Entries.Length}개 용어를 각각 씬으로 구현했습니다. 왼쪽에서 분야를 고르고 용어를 누르세요.", 24f, new Color(0.65f, 0.7f, 0.8f));
-            Place(sub.rectTransform, new Vector2(0f, 1f), new Vector2(60f, -110f), new Vector2(1600f, 40f));
+            Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(60f, -40f), new Vector2(1100f, 70f));
+            subtitle = Text("Subtitle", canvasGo.transform, "", 24f, new Color(0.65f, 0.7f, 0.8f));
+            Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(60f, -110f), new Vector2(1200f, 40f));
+            subtitle.enableAutoSizing = true;
+            subtitle.fontSizeMin = 16f;
+            subtitle.fontSizeMax = 24f;
+
+            // 오른쪽 위: 강의 모드 켜기/끄기 + 시작 버튼 + 이 분야 담당자
+            var toggle = Button(canvasGo.transform, "", 22f, ToggleLecture);
+            Place((RectTransform)toggle.transform, new Vector2(1f, 1f), new Vector2(-460f, -40f), new Vector2(260f, 60f));
+            lectureToggleImage = toggle.GetComponent<Image>();
+            lectureToggleLabel = toggle.GetComponentInChildren<TextMeshProUGUI>();
+            lectureToggleLabel.alignment = TextAlignmentOptions.Center;
+
+            var start = Button(canvasGo.transform, "<b>▶ 강의 모드로 시작</b>", 24f, StartLecture);
+            Place((RectTransform)start.transform, new Vector2(1f, 1f), new Vector2(-60f, -40f), new Vector2(380f, 60f));
+            start.GetComponent<Image>().color = new Color32(64, 170, 110, 255);
+            start.GetComponentInChildren<TextMeshProUGUI>().alignment = TextAlignmentOptions.Center;
+
+            presenterText = Text("Presenter", canvasGo.transform, "", 20f, new Color(0.65f, 0.7f, 0.8f));
+            presenterText.alignment = TextAlignmentOptions.Right;
+            presenterText.textWrappingMode = TextWrappingModes.NoWrap;
+            Place(presenterText.rectTransform, new Vector2(1f, 1f), new Vector2(-60f, -110f), new Vector2(600f, 40f));
 
             // 왼쪽 분야 탭
             var tabs = Rect("Tabs", canvasGo.transform);
@@ -101,6 +163,7 @@ namespace GlossaryDemo
         private void ShowCategory(int cat)
         {
             lastCategory = cat;
+            RefreshLecture();
             for (int i = 0; i < tabImages.Length; i++) tabImages[i].color = i + 1 == cat ? Accent : Card;
             for (int i = listContent.childCount - 1; i >= 0; i--) Destroy(listContent.GetChild(i).gameObject);
 
@@ -119,7 +182,7 @@ namespace GlossaryDemo
                 var entry = e;
                 bool available = Application.CanStreamedLevelBeLoaded(entry.Scene);
                 string label = $"<b>{entry.Id}  {entry.Term}</b>\n<size=20><color=#A8B0C0>{entry.Summary}</color></size>";
-                var btn = Button(listContent, label, 26f, () => SceneManager.LoadScene(entry.Scene));
+                var btn = Button(listContent, label, 26f, () => OpenEntry(entry));
                 btn.GetComponent<LayoutElement>().preferredHeight = 86f;
                 var txt = btn.GetComponentInChildren<TextMeshProUGUI>();
                 txt.alignment = TextAlignmentOptions.MidlineLeft;

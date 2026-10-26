@@ -12,6 +12,7 @@ namespace GlossaryDemo
     // - 용어 / 쉽게 말하면 / 요청 예문 / 조작법 / 실시간 상태(Status)
     // - [허브] 버튼으로 목록 씬으로 돌아가고, F1 또는 [접기]로 패널을 접음
     // UI 는 런타임에 코드로 생성하므로 씬 빌더는 이 컴포넌트에 id 와 조작법만 넣으면 됨
+    // 강의 모드(LectureMode)가 켜져 있으면 LectureOverlay 를 붙이고 이 패널은 숨기거나 '조작 카드'로 줄임
     [DefaultExecutionOrder(-100)]
     public class GlossaryInfoPanel : MonoBehaviour
     {
@@ -23,7 +24,21 @@ namespace GlossaryDemo
         private static GlossaryInfoPanel instance;
         private static TMP_FontAsset font;
 
+        // 강의 모드에서 패널을 어떻게 보일지
+        public enum LectureView
+        {
+            Off,    // 강의 모드 아님 (원래 패널)
+            Hidden, // 숨김 (담당자가 말하는 단계)
+            Card,   // 조작법 + 확인 포인트 + 실시간 상태만 (③ 직접 보기)
+        }
+
         private RectTransform body;
+        private RectTransform header;
+        private TextMeshProUGUI categoryText;
+        private TextMeshProUGUI summaryText;
+        private TextMeshProUGUI lectureTitle;
+        private LectureView lectureView = LectureView.Off;
+        private LectureOverlay lecture;
         private RectTransform panelRect;    // 패널 전체 (높이가 화면을 넘는지 재는 용도)
         private RectTransform canvasRect;
         private RectTransform details;      // 개념 · 요청 예문 (F2 로 접기)
@@ -74,11 +89,21 @@ namespace GlossaryDemo
             }
         }
 
+        // 씬 빌더가 넣은 조작법 (강의 모드 대사에서도 사용)
+        public string Controls => controls;
+
         private void Awake()
         {
             instance = this;
             EnsureEventSystem();
             Build();
+            if (LectureMode.Enabled) StartLecture();
+        }
+
+        private void StartLecture()
+        {
+            if (lecture != null || !GlossaryCatalog.TryFind(entryId, out var entry)) return;
+            lecture = LectureOverlay.Create(this, entry);
         }
 
         private void OnDestroy()
@@ -90,8 +115,43 @@ namespace GlossaryDemo
         {
             var kb = Keyboard.current;
             if (kb == null) return;
+
+            // 강의 모드 켜기/끄기 (켜면 지금 씬의 용어부터 담당자 인사로 시작). 입력창에 글자를 치는 중에는 무시
+            if (kb[LectureMode.ToggleKey].wasPressedThisFrame && !LectureMode.TypingInInputField)
+            {
+                if (lecture != null)
+                {
+                    LectureMode.SetEnabled(false);
+                    lecture.Close();
+                    lecture = null;
+                }
+                else
+                {
+                    LectureMode.Prepare(null);
+                    StartLecture();
+                }
+            }
+
+            if (lecture != null) return; // 강의 중에는 패널 접기 키를 쓰지 않음
             if (kb.f1Key.wasPressedThisFrame) ToggleFold();
             if (kb.f2Key.wasPressedThisFrame) ToggleDetails();
+        }
+
+        // 강의 모드 표시 전환. Off 로 돌리면 접기 상태까지 원래와 똑같이 복원
+        public void SetLectureView(LectureView view)
+        {
+            lectureView = view;
+            bool on = view != LectureView.Off;
+            panelRect.gameObject.SetActive(view != LectureView.Hidden);
+            header.gameObject.SetActive(!on);
+            if (categoryText != null) categoryText.gameObject.SetActive(!on);
+            if (summaryText != null) summaryText.gameObject.SetActive(!on);
+            details.gameObject.SetActive(!on && detailsOpen);
+            lectureTitle.gameObject.SetActive(view == LectureView.Card);
+            hintText.gameObject.SetActive(!on);
+            body.gameObject.SetActive(on || !folded);
+            // 카드는 강의 진행 막대 바로 아래에 붙임 (둘 다 원래 패널 자리 = 왼쪽 위 안에 들어감)
+            panelRect.anchoredPosition = on ? new Vector2(16f, -16f - LectureOverlay.ProgressHeight - 8f) : new Vector2(16f, -16f);
         }
 
         public void ToggleFold()
@@ -113,6 +173,7 @@ namespace GlossaryDemo
         // 넘치는 순간 한 번만 자동으로 접고, 다시 보고 싶으면 F2 로 펼치게 둔다 (껐다 켰다 반복 방지)
         private void LateUpdate()
         {
+            if (lectureView != LectureView.Off) return;
             if (autoCollapsed || folded || !detailsOpen) return;
             if (panelRect == null || canvasRect == null || details == null) return;
             if (panelRect.rect.height <= canvasRect.rect.height - 24f) return;
@@ -169,7 +230,7 @@ namespace GlossaryDemo
             canvasRect = (RectTransform)canvasGo.transform;
 
             // 헤더: 제목 + 버튼
-            var header = NewRect("Header", panel);
+            header = NewRect("Header", panel);
             var hl = header.gameObject.AddComponent<HorizontalLayoutGroup>();
             hl.spacing = 8f;
             hl.childControlWidth = hl.childControlHeight = true;
@@ -198,12 +259,17 @@ namespace GlossaryDemo
             bl.childForceExpandWidth = true;
             bl.childForceExpandHeight = false;
 
+            // 강의 모드 ③ 단계에서만 보이는 카드 제목
+            lectureTitle = NewText("LectureTitle", body, $"<color=#FFD479>③ 직접 보기</color>   {entry.Term}", 22f, Color.white);
+            lectureTitle.fontStyle = FontStyles.Bold;
+            lectureTitle.gameObject.SetActive(false);
+
             if (!string.IsNullOrEmpty(entry.Id))
             {
                 string sub = string.IsNullOrEmpty(entry.Sub) ? "" : $" › {entry.Sub}";
-                NewText("Category", body, $"{entry.CategoryName}{sub}", 18f, new Color(0.6f, 0.65f, 0.75f));
+                categoryText = NewText("Category", body, $"{entry.CategoryName}{sub}", 18f, new Color(0.6f, 0.65f, 0.75f));
                 if (!string.IsNullOrEmpty(entry.Summary))
-                    NewText("Summary", body, entry.Summary, 22f, Color.white);
+                    summaryText = NewText("Summary", body, entry.Summary, 22f, Color.white);
             }
 
             // 조작법(지금 뭘 누르나) → 확인 포인트(그래서 뭘 보면 되나) 순서로 둠

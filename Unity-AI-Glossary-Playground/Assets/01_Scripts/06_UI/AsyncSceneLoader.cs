@@ -93,6 +93,7 @@ namespace GlossaryDemo.UIDemo
             }
 
             loading = true;
+            LectureMode.SceneChangeLocked = true; // 강의 모드가 이 사이에 다른 씬으로 가지 않게 (활성화 대기와 LoadScene 이 겹치면 멈춤)
             loadingScreen.SetActive(true);
             continuePrompt.SetActive(false);
             tipText.text = tips.Length > 0 ? tips[Random.Range(0, tips.Length)] : "";
@@ -129,8 +130,16 @@ namespace GlossaryDemo.UIDemo
 
         private static bool AnyInput()
         {
-            return (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) ||
-                   (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
+            bool key = Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame;
+            // 강의 키(PageDown, End, Backspace, F3, F4 …)는 '아무 키'로 치지 않음 → 강의 넘기기와 씬 활성화가 겹치지 않게
+            if (key && LectureMode.LectureKeyPressedThisFrame && (LectureMode.Enabled || DemoInput.KeyDown(LectureMode.ToggleKey)))
+                key = false;
+            return key || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
+        }
+
+        private void OnDestroy()
+        {
+            LectureMode.SceneChangeLocked = false;
         }
 
         private void RefreshOption()
