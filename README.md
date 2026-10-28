@@ -131,6 +131,9 @@ tools/compile-check/           Unity 없이 C# 컴파일 검사 (dotnet)
   `-glossaryOverlapCheck -glossaryNoCapture` 를 주면 캡처 대신 정보 패널이 데모 UI 를 가리는 씬을 Player.log 에 적음
   강의 모드 화면은 목록 항목을 `씬@단계`로 씁니다(단계: `Opening SelfIntro Intro Concept Demo Prompt`, 예: `0105_CoyoteTime@Demo` → `0105_CoyoteTime_Demo.png`).
   `-glossaryLecture`를 주면 허브 등 단계를 안 적은 항목도 강의 모드로 찍고, 가림 점검은 강의 UI 를 `[LectureOverlap]`으로 적습니다.
+- `Tools > Glossary > Build Lecture Player` : 수업용 강의 플레이어 빌드 → `Builds/LecturePlayer/Glossary.exe` (테두리 없는 전체화면, `F10` 끝내기)
+  `Glossary.exe -glossaryStart 0105 -glossaryLecture` 로 실행하면 그 용어부터 강의 모드 (OMP Studio 앱의 ▶ 예제 실행이 이렇게 엽니다). `-glossaryLecture` 를 빼면 강의 없이 그 용어 씬만
+  명령줄: `Unity.exe -batchmode -projectPath Unity-AI-Glossary-Playground -executeMethod GlossaryLecturePlayer.BuildFromCommandLine -quit`
 
 명령줄 일괄 생성 + 점검:
 

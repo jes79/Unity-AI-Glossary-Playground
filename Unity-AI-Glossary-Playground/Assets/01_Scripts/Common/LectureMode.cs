@@ -34,9 +34,11 @@ namespace GlossaryDemo
         public const Key HubKey = Key.Backspace;        // 허브로
         public const Key BubbleKey = Key.F3;            // 말풍선 숨기기/보이기
         public const Key ToggleKey = Key.F4;            // 강의 모드 켜기/끄기
+        public const Key QuitKey = Key.F10;             // 강의 플레이어 끝내기 (강의 플레이어 빌드에서만, LectureLaunch)
 
-        public const string KeyGuide =
+        private const string BaseKeyGuide =
             "PgDn / ]  다음     PgUp / [  이전     End  다음 용어     Home  이전 용어     F3  말풍선     Backspace  허브     F4  강의 모드 끄기";
+        public static string KeyGuide => LectureLaunch.IsLecturePlayer ? BaseKeyGuide + "     F10  끝내기" : BaseKeyGuide;
 
         private static readonly Key[] AllKeys =
             { NextKey, NextKeyAlt, PrevKey, PrevKeyAlt, NextTermKey, PrevTermKey, HubKey, BubbleKey, ToggleKey };
@@ -60,6 +62,7 @@ namespace GlossaryDemo
         public static bool CurrentHasSelfIntro { get; private set; }
         public static bool CurrentHasOpening { get; private set; }
         public static bool SamePresenterAsBefore { get; private set; } // 앞 분야와 담당자가 같으면 인사를 짧게
+        public static bool CurrentIsDirectStart { get; private set; } // 명령줄로 바로 시작한 첫 용어 (① 소개를 인사로 시작)
 
         // 이 용어에서 ③ 직접 보기에 도달했는가. 시간 제한이 있는 데모(0816 게임 씬)는 이때부터 시계를 돌림
         public static bool DemoReached;
@@ -72,6 +75,7 @@ namespace GlossaryDemo
         // 분야 소개를 마친 분야 번호 (0 = 아직 없음)
         private static int introducedCategory;
         private static bool pendingOpening;
+        private static bool pendingDirectStart;
 
         // 다음 씬에서 시작할 단계 (용어가 바뀔 때 한 번만 사용)
         private static bool pendingLast;
@@ -92,6 +96,16 @@ namespace GlossaryDemo
             pendingOpening = true; // Go 다음에 둬야 지워지지 않음
         }
 
+        // 명령줄(-glossaryStart 0105 -glossaryLecture)로 한 용어부터 바로 강의 (LectureLaunch)
+        // 디렉터 인사 없이 시작. 분야의 첫 용어면 분야 소개부터, 아니면 ① 소개부터
+        public static void StartFromTerm(GlossaryEntry entry)
+        {
+            Enabled = true;
+            introducedCategory = IndexInCategory(entry) == 1 ? 0 : entry.Category;
+            Go(entry, false);
+            pendingDirectStart = true; // Go 다음에 둬야 지워지지 않음
+        }
+
         // 스크린샷 등에서 특정 단계를 바로 띄울 때 사용
         public static void Prepare(LectureStep? step)
         {
@@ -110,6 +124,7 @@ namespace GlossaryDemo
             pendingLast = atLastStep;
             pendingStep = null;
             pendingOpening = false;
+            pendingDirectStart = false;
             Time.timeScale = 1f; // 일시정지 데모에서 넘어가도 멈춰 있지 않게
             if (Application.CanStreamedLevelBeLoaded(entry.Scene))
                 SceneManager.LoadScene(entry.Scene);
@@ -137,6 +152,8 @@ namespace GlossaryDemo
                 introducedCategory = entry.Category;
                 CurrentHasOpening = pendingOpening;
                 pendingOpening = false;
+                CurrentIsDirectStart = pendingDirectStart;
+                pendingDirectStart = false;
                 DemoReached = false;
             }
 
