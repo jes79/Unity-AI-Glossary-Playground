@@ -60,6 +60,7 @@ namespace GlossaryDemo
         public static bool CurrentHasSelfIntro { get; private set; }
         public static bool CurrentHasOpening { get; private set; }
         public static bool SamePresenterAsBefore { get; private set; } // 앞 분야와 담당자가 같으면 인사를 짧게
+        public static bool CurrentIsDirectStart { get; private set; } // 명령줄로 바로 시작한 첫 용어 (① 소개를 인사로 시작)
 
         // 이 용어에서 ③ 직접 보기에 도달했는가. 시간 제한이 있는 데모(0816 게임 씬)는 이때부터 시계를 돌림
         public static bool DemoReached;
@@ -72,6 +73,7 @@ namespace GlossaryDemo
         // 분야 소개를 마친 분야 번호 (0 = 아직 없음)
         private static int introducedCategory;
         private static bool pendingOpening;
+        private static bool pendingDirectStart;
 
         // 다음 씬에서 시작할 단계 (용어가 바뀔 때 한 번만 사용)
         private static bool pendingLast;
@@ -92,6 +94,17 @@ namespace GlossaryDemo
             pendingOpening = true; // Go 다음에 둬야 지워지지 않음
         }
 
+        // 명령줄(-glossaryStart 0105 -glossaryLecture)로 한 용어부터 바로 강의 (LectureLaunch)
+        // 디렉터 인사 없이 ① 소개부터. 분야의 첫 용어면 분야 소개부터
+        public static void StartFromTerm(GlossaryEntry entry)
+        {
+            Enabled = true;
+            // 분야 첫 용어가 아니면 '이 분야는 이미 소개했다'로 두어 분야 소개를 건너뜀
+            introducedCategory = IndexInCategory(entry) == 1 ? 0 : entry.Category;
+            Go(entry, false);
+            pendingDirectStart = true; // Go 다음에 둬야 지워지지 않음
+        }
+
         // 스크린샷 등에서 특정 단계를 바로 띄울 때 사용
         public static void Prepare(LectureStep? step)
         {
@@ -101,6 +114,7 @@ namespace GlossaryDemo
             pendingStep = step;
             pendingLast = false;
             pendingOpening = step == LectureStep.Opening;
+            pendingDirectStart = false;
         }
 
         // 용어 씬으로 이동. atLastStep = 이전 용어로 거꾸로 갈 때 마지막 단계부터
@@ -110,6 +124,7 @@ namespace GlossaryDemo
             pendingLast = atLastStep;
             pendingStep = null;
             pendingOpening = false;
+            pendingDirectStart = false;
             Time.timeScale = 1f; // 일시정지 데모에서 넘어가도 멈춰 있지 않게
             if (Application.CanStreamedLevelBeLoaded(entry.Scene))
                 SceneManager.LoadScene(entry.Scene);
@@ -137,6 +152,8 @@ namespace GlossaryDemo
                 introducedCategory = entry.Category;
                 CurrentHasOpening = pendingOpening;
                 pendingOpening = false;
+                CurrentIsDirectStart = pendingDirectStart;
+                pendingDirectStart = false;
                 DemoReached = false;
             }
 

@@ -55,6 +55,23 @@
 - `[강의 모드 꺼짐/켜짐]` 버튼(또는 `F4`)으로 켜 두면, 목록에서 누른 용어부터 강의가 시작됩니다(디렉터 인사 포함).
 - 데모 씬 안에서도 `F4`로 켜고 끌 수 있습니다. 끄면 정보 패널이 원래대로 돌아옵니다. 강의 모드 상태는 씬이 바뀌어도 유지됩니다.
 
+**강의 플레이어 (빌드한 exe 로 수업하기)**
+
+- 빌드: 메뉴 `Tools > Glossary > Build Lecture Player` 또는 명령줄
+  `Unity.exe -batchmode -projectPath Unity-AI-Glossary-Playground -executeMethod GlossaryBatch.BuildLecturePlayer -quit`
+  → `Builds/LecturePlayer/Glossary.exe` (전체 씬 포함, 스크린샷 플레이어와 별도. `Builds/`는 git 에 올리지 않으므로 PC마다 한 번 빌드).
+- 테두리 없는 창 전체화면(지금 모니터 해상도)으로 뜹니다. 끄기: `Alt+F4`, 또는 허브에서 `Esc`(데모 씬의 `Esc`는 일시정지 등 데모 키라 그대로 둠).
+  `-screen-width 1280 -screen-height 720 -screen-fullscreen 0`처럼 Unity 창 인자를 주면 그 설정을 따릅니다.
+
+| 실행 인자 | 동작 |
+| --- | --- |
+| (없음) | 허브 |
+| `-glossaryStart 0105 -glossaryLecture` | 허브를 거치지 않고 0105 씬을 강의 모드로 열어 ① 소개부터 (분야 첫 용어면 분야 소개부터, 디렉터 인사 없음) |
+| `-glossaryStart 0105` | 강의 모드 없이 0105 씬만 |
+| `-glossaryStart 9999` (없는 번호) | 허브를 열고 아래쪽에 "씬이 없어 허브를 열었습니다" 알림 한 줄 |
+
+- 시작 처리는 `Assets/01_Scripts/Common/LectureLaunch.cs`. `-glossaryShots`(자동 촬영)와 함께 주면 `-glossaryStart`는 무시합니다.
+
 **용어 하나의 진행 순서**
 
 | 단계 | 화면 |
@@ -131,6 +148,7 @@ tools/compile-check/           Unity 없이 C# 컴파일 검사 (dotnet)
   `-glossaryOverlapCheck -glossaryNoCapture` 를 주면 캡처 대신 정보 패널이 데모 UI 를 가리는 씬을 Player.log 에 적음
   강의 모드 화면은 목록 항목을 `씬@단계`로 씁니다(단계: `Opening SelfIntro Intro Concept Demo Prompt`, 예: `0105_CoyoteTime@Demo` → `0105_CoyoteTime_Demo.png`).
   `-glossaryLecture`를 주면 허브 등 단계를 안 적은 항목도 강의 모드로 찍고, 가림 점검은 강의 UI 를 `[LectureOverlap]`으로 적습니다.
+- `Tools > Glossary > Build Lecture Player` : 수업용 강의 플레이어 빌드 → `Builds/LecturePlayer/Glossary.exe` (실행 인자는 위 '강의 모드' 절)
 
 명령줄 일괄 생성 + 점검:
 

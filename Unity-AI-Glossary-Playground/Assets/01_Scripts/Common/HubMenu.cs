@@ -9,10 +9,15 @@ namespace GlossaryDemo
     // 허브 씬: 분야별 탭 + 용어 목록. 항목을 누르면 해당 데모 씬으로 이동
     // UI 는 런타임에 카탈로그를 읽어 코드로 생성
     // 오른쪽 위 [강의 모드로 시작] = 고른 분야의 첫 용어부터 담당자가 설명 (강의 모드가 켜져 있으면 용어를 눌러도 그 용어부터 강의)
+    // 강의 플레이어 빌드에서는 허브에서 Esc 로 프로그램을 끔 (데모 씬은 Esc 를 일시정지 등에 쓰므로 허브에서만)
     public class HubMenu : MonoBehaviour
     {
         private static int lastCategory = 1;
 
+        // 허브 아래쪽에 한 번 띄울 알림 (예: 명령줄로 없는 용어 번호를 줬을 때, LectureLaunch)
+        public static string Notice;
+
+        private Transform canvasRoot;
         private RectTransform listContent;
         private ScrollRect scroll;
         private Image[] tabImages;
@@ -29,12 +34,28 @@ namespace GlossaryDemo
         {
             Time.timeScale = 1f;
             Build();
+            ShowNotice();
             ShowCategory(lastCategory);
         }
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current[LectureMode.ToggleKey].wasPressedThisFrame && !LectureMode.TypingInInputField) ToggleLecture();
+            if (Keyboard.current == null || LectureMode.TypingInInputField) return;
+            if (Keyboard.current[LectureMode.ToggleKey].wasPressedThisFrame) ToggleLecture();
+            if (LectureLaunch.IsLecturePlayer && Keyboard.current[Key.Escape].wasPressedThisFrame) Application.Quit();
+        }
+
+        // 화면 아래쪽에 알림 띠를 한 줄 띄우고 비움 (다시 허브로 돌아오면 사라짐)
+        private void ShowNotice()
+        {
+            if (string.IsNullOrEmpty(Notice)) return;
+            var bar = Rect("Notice", canvasRoot);
+            Place(bar, new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(1400f, 56f));
+            bar.gameObject.AddComponent<Image>().color = new Color32(150, 60, 40, 235);
+            var text = Text("Label", bar, Notice, 24f, Color.white);
+            Stretch(text.rectTransform);
+            text.alignment = TextAlignmentOptions.Center;
+            Notice = null;
         }
 
         private void ToggleLecture()
@@ -71,6 +92,7 @@ namespace GlossaryDemo
         private void Build()
         {
             var canvasGo = new GameObject("HubCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvasRoot = canvasGo.transform;
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.GetComponent<CanvasScaler>();

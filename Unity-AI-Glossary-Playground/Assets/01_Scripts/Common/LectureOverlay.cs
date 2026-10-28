@@ -245,10 +245,13 @@ namespace GlossaryDemo
                            $"이 분야 용어는 모두 <b>{count}개</b>, {term}부터 시작할게요!";
 
                 case LectureStep.Intro:
+                    string summary = string.IsNullOrEmpty(entry.Summary) ? "" : $"\n쉽게 말하면 <b>'{entry.Summary}'</b>, 이런 뜻이에요.";
+                    // 명령줄로 이 용어부터 바로 시작했고 분야 소개가 없으면 담당자가 먼저 인사 (다음 용어부터는 평소 대사)
+                    if (LectureMode.CurrentIsDirectStart && !LectureMode.CurrentHasSelfIntro)
+                        return $"안녕하세요, {presenter.Role} 담당이에요!\n이번에 볼 용어는 {term}!{summary}";
                     string opener = LectureMode.CurrentHasSelfIntro
                         ? (index == 1 ? "첫 번째 용어부터 갈게요." : "그럼 바로 시작해 볼게요.")
                         : presenter.NextLine;
-                    string summary = string.IsNullOrEmpty(entry.Summary) ? "" : $"\n쉽게 말하면 <b>'{entry.Summary}'</b>, 이런 뜻이에요.";
                     return $"{opener}\n이번 용어는 {term}!{summary}";
 
                 case LectureStep.Concept:

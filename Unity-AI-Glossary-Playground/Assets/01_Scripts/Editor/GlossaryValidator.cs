@@ -95,4 +95,10 @@ public static class GlossaryBatch
         var fa = GlossaryKit.EnsureKoreanFont();
         Debug.Log($"[GlossaryBatch] 폰트: {fa?.name}, 원본: {(fa != null && fa.sourceFontFile != null ? fa.sourceFontFile.name : "없음")}");
     }
+
+    // 강의 플레이어 빌드 → Builds/LecturePlayer/Glossary.exe (명령줄용, 실패하면 종료 코드 1)
+    public static void BuildLecturePlayer()
+    {
+        if (!GlossaryLecturePlayer.Build()) EditorApplication.Exit(1);
+    }
 }
